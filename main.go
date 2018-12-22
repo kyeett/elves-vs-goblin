@@ -3,18 +3,15 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/views"
 	"github.com/kyeett/elves-vs-goblin/pkg/world"
 
-	"gonum.org/v1/gonum/mat"
-
 	"github.com/nats-io/nats"
 )
-
-type World struct {
-	*mat.Dense
-}
 
 const (
 	Whale float64 = 1
@@ -29,12 +26,20 @@ const (
 )
 
 func main() {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt)
 
 	world := world.NewDefaultWorld()
 	view := views.NewView(&world)
-	fmt.Println(view)
 
-	fmt.Println("🐳   🐙")
+	go world.Start()
+
+	ticker := time.NewTicker(1000 * time.Millisecond)
+	for range ticker.C {
+		fmt.Println("Draw world!")
+		fmt.Println(view)
+		fmt.Println("🐳   🐙")
+	}
 }
 
 func natsStuff() {
