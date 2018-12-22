@@ -2,9 +2,10 @@ package world
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
 	"time"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/transport"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/player"
 
@@ -16,6 +17,7 @@ type World struct {
 	m       [][]byte
 	Size    geom.Rect
 	players []*player.Player
+	msger   transport.Messager
 	mut     *sync.RWMutex
 }
 
@@ -36,6 +38,12 @@ func NewDefaultWorld() World {
 		},
 		mut: &sync.RWMutex{},
 	}
+}
+
+func NewWorld() World {
+	w := NewDefaultWorld()
+	w.msger = transport.DefaultNats()
+	return w
 }
 
 // Center returns the center position of the world, zero indexed
@@ -62,7 +70,6 @@ func (w World) Rows() [][]byte {
 	}
 
 	for _, p := range w.players {
-		fmt.Println("Yay")
 		duplicate[p.Y][p.X] = '#'
 	}
 	w.mut.RUnlock()
@@ -77,12 +84,14 @@ func (w *World) Start() {
 		// Get user input
 		p.Move(1, 0)
 		time.Sleep(200 * time.Millisecond)
+
 		p.Move(0, 1)
 		time.Sleep(200 * time.Millisecond)
 		p.Move(0, 1)
 		time.Sleep(200 * time.Millisecond)
 		p.Move(1, 0)
 		time.Sleep(200 * time.Millisecond)
+		w.msger.Send(&p)
 
 		p.Move(0, -1)
 		time.Sleep(200 * time.Millisecond)
@@ -92,6 +101,8 @@ func (w *World) Start() {
 		time.Sleep(200 * time.Millisecond)
 		p.Move(-1, 0)
 		time.Sleep(200 * time.Millisecond)
+		w.msger.Send(&p)
+		// c.Publish(, v interface{})
 
 		// Update game state
 	}

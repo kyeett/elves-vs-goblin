@@ -12,11 +12,9 @@ docker run -d --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats
 
 ## Todo
 
-- Transmit player state
 - Logrus for logging
 - Logrus over NATS
 - Navigation (WASD)
-- Connect to NATS
 - Propagate world state
 - In game chat
 - Everything else
@@ -25,6 +23,8 @@ docker run -d --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats
 
 ## Done
 
+- ~~Connect to NATS~~
+- ~~Transmit player state~~
 - ~~Draw world~~
 - ~~Add a player type~~
 - ~~Draw player~~
