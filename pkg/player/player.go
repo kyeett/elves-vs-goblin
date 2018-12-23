@@ -3,6 +3,7 @@ package player
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"math/rand"
 	"strconv"
 
@@ -14,23 +15,26 @@ type Player struct {
 	geom.Coord
 }
 
-func (p *Player) Move(x, y int) {
-	p.X += x
-	p.Y += y
-}
-
 func (p *Player) Goto(x, y int) {
 	p.X = x
 	p.Y = y
 }
 
-func NewPlayer() Player {
+func NewDefaultPlayer() Player {
 	hash := md5.New()
 	hash.Write([]byte(strconv.Itoa(rand.Intn(123456))))
 	ID := hex.EncodeToString(hash.Sum(nil))[0:8]
+
+	return NewPlayer(ID)
+}
+
+func NewPlayer(ID string) Player {
 	return Player{
 		ID,
 		geom.Coord{0, 0},
 	}
+}
 
+func (p Player) String() string {
+	return fmt.Sprintf("[ID:%s %s]", p.ID, p.Coord)
 }

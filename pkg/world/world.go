@@ -23,7 +23,7 @@ type World struct {
 
 const size = 5
 
-// NewDefaultWorld returns a 9x9 world filled with empty spaces
+// NewDefaultWorld returns a 5x5 world filled with empty spaces
 func NewDefaultWorld() World {
 	m := make([][]byte, size)
 	for y := 0; y < size; y++ {
@@ -55,7 +55,7 @@ func (w World) Center() geom.Coord {
 }
 
 // NewPlayer adds a player to the world
-func (w *World) NewPlayer(p *player.Player) {
+func (w *World) AddPlayer(p *player.Player) {
 	w.mut.Lock()
 	w.players = append(w.players, p)
 	w.mut.Unlock()
@@ -77,48 +77,27 @@ func (w World) Rows() [][]byte {
 }
 
 func (w *World) Start() {
-	p := player.NewPlayer()
-	w.NewPlayer(&p)
+	p := player.NewDefaultPlayer()
+	w.AddPlayer(&p)
 
 	for {
 		// Get user input
-		p.Move(1, 0)
 		time.Sleep(200 * time.Millisecond)
 
-		p.Move(0, 1)
 		time.Sleep(200 * time.Millisecond)
-		p.Move(0, 1)
 		time.Sleep(200 * time.Millisecond)
-		p.Move(1, 0)
 		time.Sleep(200 * time.Millisecond)
-		w.msger.Send(&p)
 
-		p.Move(0, -1)
 		time.Sleep(200 * time.Millisecond)
-		p.Move(-1, 0)
 		time.Sleep(200 * time.Millisecond)
-		p.Move(0, -1)
 		time.Sleep(200 * time.Millisecond)
-		p.Move(-1, 0)
 		time.Sleep(200 * time.Millisecond)
-		w.msger.Send(&p)
 		// c.Publish(, v interface{})
 
 		// Update game state
 	}
 }
 
-// const paddingX = 3
-
-// var horizontalLine = strings.Repeat("-", paddingX*width)
-
-// func (w World) String() string {
-// 	sY, sX := w.Dims()
-
-// 	grid := make([][]rune, sY)
-// 	s := ""
-// 	for y := 0; y < sY; y++ {
-// 		grid[y] = make([]rune, paddingX*sX)
 // 		for x := 0; x < sX*paddingX; x += paddingX {
 
 // 			switch w.At(y, x/paddingX) {

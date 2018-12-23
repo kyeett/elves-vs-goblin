@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/nats-io/nats"
@@ -16,7 +15,6 @@ type Nats struct {
 }
 
 func (n Nats) Send(v interface{}) {
-	fmt.Println("Called!")
 	n.conn.Publish("player", &v)
 }
 
@@ -48,4 +46,18 @@ func DefaultNats() Nats {
 	return Nats{
 		conn: c,
 	}
+}
+
+//Todo: how to handle closing of nc and c
+func ServerConnections() (*nats.Conn, *nats.EncodedConn, error) {
+	nc, err := nats.Connect(nats.DefaultURL)
+	if err != nil {
+		log.Fatal(err)
+		return nil, nil, err
+	}
+	c, err := nats.NewEncodedConn(nc, nats.JSON_ENCODER)
+	if err != nil {
+		return nil, nil, err
+	}
+	return nc, c, nil
 }
