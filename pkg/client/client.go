@@ -4,8 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/kyeett/elves-vs-goblin/pkg/actions"
 	"github.com/kyeett/elves-vs-goblin/pkg/transport"
 	"github.com/nats-io/nats"
@@ -55,8 +53,32 @@ func (c *Client) Move(x, y int) error {
 		Coord:  c.Coord.Add(x, y),
 		Action: actions.Move,
 	}
-	logrus.Info("Action!")
 	c.encConn.Publish("action", &a)
-	logrus.Info("Action!2")
 	return nil
+}
+
+func (c *Client) Run() error {
+	c.Connect()
+
+	stateChan := make(chan *nats.Msg, 64)
+	sub, err := c.conn.ChanSubscribe("state", stateChan)
+	if err != nil {
+		return errors.Wrap(err, "client")
+	}
+
+	// select {
+	// case msg := <-stateChan:
+	// 	log.Info("State updated")
+	// case  <- time.After(100*time.Millisecond)
+
+	sub.Unsubscribe()
+	sub.Drain()
+	return nil
+}
+
+//Todo: fix closing of sub
+func (c *Client) StateChan() chan *nats.Msg {
+	stateChan := make(chan *nats.Msg, 64)
+	_, _ = c.conn.ChanSubscribe("state", stateChan)
+	return stateChan
 }

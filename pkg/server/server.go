@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"io"
+	"sync"
+	"time"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/player"
 	"github.com/kyeett/elves-vs-goblin/pkg/transport"
@@ -18,6 +20,8 @@ type Server struct {
 	conn    *nats.Conn
 	encConn *nats.EncodedConn
 }
+
+var mutex = sync.RWMutex{}
 
 var serverStartedTestHook = func() {}
 var postActionTestHook = func() {}
@@ -82,9 +86,23 @@ func (s Server) Start(cancel <-chan bool) {
 	s.Shutdown()
 }
 
+func (s *Server) StartSendingState() {
+
+	ticker := time.NewTicker(20 * time.Millisecond)
+	for {
+		<-ticker.C
+		mutex.RLock()
+		log.Info("Start sending state")
+		s.encConn.Publish("state", s.world)
+		mutex.RUnlock()
+	}
+}
+
 func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, cancel <-chan bool) {
 	// Used in tests to wait for startup
 	serverStartedTestHook()
+
+	go s.StartSendingState()
 	for {
 		log.Info("Game Loop")
 		select {
@@ -111,6 +129,7 @@ func (s *Server) handleConnect(msg *nats.Msg) {
 	p := player.NewDefaultPlayer()
 	log.Infof("Player %s connected", p)
 	s.world.AddPlayer(&p)
+	log.Info(s.world)
 	s.encConn.Publish(msg.Reply, &p)
 }
 

@@ -1,10 +1,12 @@
 package server
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/client"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/transport"
 
@@ -60,6 +62,23 @@ func Test_move(t *testing.T) {
 	c.Move(1, 0)
 	c.Move(0, 1)
 
+	stateChan := c.StateChan()
+	go s.StartSendingState()
+
+	timeout := 100 * time.Millisecond
+	select {
+	case msg := <-stateChan:
+		var wrld world.World
+		err := json.Unmarshal(msg.Data, &wrld)
+		if err != nil {
+			t.Fatal(err)
+		}
+		log.Info("State updated", wrld)
+
+	case <-time.After(timeout):
+		t.Fatalf("Did not expected response within %s: %s", timeout, err)
+	}
+
 	// Wait for server to receive
 	// actionDone := make(chan bool)
 	// postActionTestHook = func() {
@@ -67,7 +86,6 @@ func Test_move(t *testing.T) {
 	// }
 
 	// <-actionDone
-
 	// Terminate test
 	quit <- true
 }
