@@ -20,15 +20,11 @@ func (p *Player) Goto(x, y int) {
 	p.Y = y
 }
 
-func NewDefaultPlayer() Player {
+func NewDefault() Player {
 	hash := md5.New()
 	hash.Write([]byte(strconv.Itoa(rand.Intn(123456))))
 	ID := hex.EncodeToString(hash.Sum(nil))[0:8]
 
-	return NewPlayer(ID)
-}
-
-func NewPlayer(ID string) Player {
 	return Player{
 		ID,
 		geom.Coord{0, 0},

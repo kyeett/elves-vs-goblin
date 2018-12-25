@@ -12,6 +12,12 @@ docker run -d --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats
 
 ## Todo
 
+- server: handle multiple users
+- server: multiple users testcase
+- server: clean up usage according to plan
+- client: clean up usage according to plan
+- client: Show multiple users
+
 - Change the handling of buffer/writes in views
 
 - Logrus for logging
@@ -25,6 +31,7 @@ docker run -d --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats
 
 ## Done
 
+- ~~rename xxx.NewXXX to xxx.New~~
 - ~~Connect to NATS~~
 - ~~Transmit player state~~
 - ~~Draw world~~

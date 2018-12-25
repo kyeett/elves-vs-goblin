@@ -68,13 +68,13 @@ func serverChannels(nc *nats.Conn) (chan *nats.Msg, chan *nats.Msg, io.Closer) {
 	return connectChan, actionChan, closer
 }
 
-func NewDefaultServer() Server {
+func NewDefault() Server {
 	nc, c, err := transport.ServerConnections()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	wrld := world.NewDefaultWorld()
+	wrld := world.NewDefault()
 	return Server{
 		world:   &wrld,
 		conn:    nc,
@@ -128,7 +128,7 @@ func (s *Server) Shutdown() {
 }
 
 func (s *Server) handleConnect(msg *nats.Msg) {
-	p := player.NewDefaultPlayer()
+	p := player.NewDefault()
 	log.Infof("Player %s connected", p)
 	s.world.AddPlayer(&p)
 	s.encConn.Publish(msg.Reply, &p)

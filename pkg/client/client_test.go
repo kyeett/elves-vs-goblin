@@ -15,7 +15,7 @@ import (
 )
 
 func Test_move(t *testing.T) {
-	s := server.NewDefaultServer()
+	s := server.NewDefault()
 	quit := make(chan bool)
 	go s.Start(quit)
 

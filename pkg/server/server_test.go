@@ -8,7 +8,7 @@ import (
 )
 
 func Test_connect(t *testing.T) {
-	s := NewDefaultServer()
+	s := NewDefault()
 	quit := make(chan bool)
 
 	started := make(chan bool)

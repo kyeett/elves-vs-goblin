@@ -20,7 +20,7 @@ func main() {
 		quit <- true
 	}()
 
-	s := server.NewDefaultServer()
+	s := server.NewDefault()
 	s.Start(quit)
 
 }

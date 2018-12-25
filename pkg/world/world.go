@@ -21,8 +21,8 @@ var mut = sync.RWMutex{}
 
 const size = 5
 
-// NewDefaultWorld returns a 5x5 world filled with empty spaces
-func NewDefaultWorld() World {
+// NewDefault returns a 5x5 world filled with empty spaces
+func NewDefault() World {
 	m := make([][]byte, size)
 	for y := 0; y < size; y++ {
 		m[y] = bytes.Repeat([]byte(" "), size)
@@ -68,7 +68,7 @@ func (w World) Rows() [][]byte {
 }
 
 func (w *World) Start() {
-	p := player.NewDefaultPlayer()
+	p := player.NewDefault()
 	w.AddPlayer(&p)
 
 }
