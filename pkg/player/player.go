@@ -3,7 +3,6 @@ package player
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -40,10 +39,11 @@ func (p Player) String() string {
 	return fmt.Sprintf("[ID:%s %s]", p.ID, p.Coord)
 }
 
-func (p *Player) MarshalJSON() ([]byte, error) {
-	b, err := json.Marshal(*p)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
-}
+// func (p *Player) MarshalJSON() ([]byte, error) {
+// 	b, err := json.Marshal(*p)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	log.Error("Marshal")
+// 	return b, nil
+// }

@@ -1,8 +1,16 @@
 package client
 
 import (
-	"log"
+	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/input"
+
+	log "github.com/sirupsen/logrus"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/views"
+	"github.com/kyeett/elves-vs-goblin/pkg/world"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/actions"
 	"github.com/kyeett/elves-vs-goblin/pkg/transport"
@@ -14,8 +22,10 @@ import (
 
 type Client struct {
 	*player.Player
+	world   *world.World
 	conn    *nats.Conn
 	encConn *nats.EncodedConn
+	view    views.View
 }
 
 const connectionTimeout = 10 * time.Millisecond
@@ -29,6 +39,7 @@ func NewClient() Client {
 	return Client{
 		conn:    conn,
 		encConn: encConn,
+		view:    views.NewView(),
 	}
 }
 
@@ -39,6 +50,9 @@ func (c *Client) Connect() error {
 		return errors.Wrap(err, "client failed to connect")
 	}
 
+	if p.ID == "" {
+		return errors.Wrap(err, "client received unexpected response. No ID")
+	}
 	c.Player = &p
 	return nil
 }
@@ -57,8 +71,7 @@ func (c *Client) Move(x, y int) error {
 	return nil
 }
 
-func (c *Client) Run() error {
-	c.Connect()
+func (c *Client) Run(inputCh <-chan input.Command) error {
 
 	stateChan := make(chan *nats.Msg, 64)
 	sub, err := c.conn.ChanSubscribe("state", stateChan)
@@ -66,19 +79,43 @@ func (c *Client) Run() error {
 		return errors.Wrap(err, "client")
 	}
 
-	// select {
-	// case msg := <-stateChan:
-	// 	log.Info("State updated")
-	// case  <- time.After(100*time.Millisecond)
+	for {
+		select {
+		case cmd := <-inputCh:
+			log.Infof("%s", input.Command(cmd))
+			c.handleInput(cmd)
+		case msg := <-stateChan:
+			var wrld world.World
+			err := json.Unmarshal(msg.Data, &wrld)
+			if err != nil {
+				return err
+			}
+			c.world = &wrld
+			// Todo: fix for multiplayer :-)
+			c.Player.Coord = c.world.Players[0].Coord
+			fmt.Println(c.view.Draw(&wrld))
+
+			// case <-cancel:
+			// 	break
+		}
+	}
 
 	sub.Unsubscribe()
 	sub.Drain()
 	return nil
 }
 
-//Todo: fix closing of sub
-func (c *Client) StateChan() chan *nats.Msg {
-	stateChan := make(chan *nats.Msg, 64)
-	_, _ = c.conn.ChanSubscribe("state", stateChan)
-	return stateChan
+func (c *Client) handleInput(cmd input.Command) {
+	switch cmd {
+	case input.MoveUp:
+		c.Move(0, -1)
+	case input.MoveDown:
+		c.Move(0, 1)
+	case input.MoveRight:
+		c.Move(1, 0)
+	case input.MoveLeft:
+		c.Move(-1, 0)
+	default:
+		log.Errorf("unknown input %s. ignorning.", cmd)
+	}
 }

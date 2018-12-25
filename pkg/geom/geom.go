@@ -10,8 +10,8 @@ type Coord struct {
 // Add returns a new coordinate by offset argument
 func (c Coord) Add(dx, dy int) Coord {
 	return Coord{
-		X: c.X - dx,
-		Y: c.Y - dy,
+		X: c.X + dx,
+		Y: c.Y + dy,
 	}
 }
 

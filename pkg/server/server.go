@@ -1,10 +1,15 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/actions"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/player"
 	"github.com/kyeett/elves-vs-goblin/pkg/transport"
@@ -92,7 +97,6 @@ func (s *Server) StartSendingState() {
 	for {
 		<-ticker.C
 		mutex.RLock()
-		log.Info("Start sending state")
 		s.encConn.Publish("state", s.world)
 		mutex.RUnlock()
 	}
@@ -104,13 +108,11 @@ func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, cancel <-chan 
 
 	go s.StartSendingState()
 	for {
-		log.Info("Game Loop")
 		select {
 		case msg := <-connectChan:
 			log.Info("Connect")
 			s.handleConnect(msg)
 		case msg := <-actionChan:
-			log.Info("Action")
 			s.handleAction(msg)
 			postActionTestHook()
 		case <-cancel:
@@ -129,10 +131,34 @@ func (s *Server) handleConnect(msg *nats.Msg) {
 	p := player.NewDefaultPlayer()
 	log.Infof("Player %s connected", p)
 	s.world.AddPlayer(&p)
-	log.Info(s.world)
 	s.encConn.Publish(msg.Reply, &p)
 }
 
 func (s *Server) handleAction(msg *nats.Msg) {
-	log.Info("Action performed")
+	var sig actions.Signal
+	json.Unmarshal(msg.Data, &sig)
+	switch sig.Action {
+	case actions.Move:
+		p, err := s.getPlayer(sig.ID)
+		if err != nil {
+			log.Error(errors.Wrap(err, "server: ignoring action"))
+		}
+		if sig.Coord.X >= 0 && sig.Coord.X < s.world.Size.W && sig.Coord.Y >= 0 && sig.Coord.Y < s.world.Size.H {
+			p.Goto(sig.Coord.X, sig.Coord.Y)
+		}
+
+	case actions.Build:
+		log.Fatal("BUILD: Yay", sig, "ID:", sig.ID)
+
+	default:
+		log.Errorf("Received unknown action type %d from %s", sig.Action, sig.ID)
+	}
+}
+
+func (s *Server) getPlayer(ID string) (*player.Player, error) {
+	for _, p := range s.world.Players {
+		return p, nil
+	}
+
+	return nil, errors.New("invalid ID")
 }

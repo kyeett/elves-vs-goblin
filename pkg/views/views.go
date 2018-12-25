@@ -3,12 +3,12 @@ package views
 import (
 	"bytes"
 
-	"github.com/kyeett/elves-vs-goblin/pkg/geom"
 	"github.com/kyeett/elves-vs-goblin/pkg/world"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/geom"
 )
 
 type View struct {
-	world   *world.World
 	padding []byte
 	center  geom.Coord
 	size    geom.Rect
@@ -16,11 +16,9 @@ type View struct {
 
 const size = 9
 
-func NewView(w *world.World) View {
+func NewView() View {
 	return View{
-		world:   w,
 		padding: []byte("."),
-		center:  w.Center(),
 		size: geom.Rect{
 			W: size,
 			H: size,
@@ -36,12 +34,10 @@ func paddingBytes(v View, missing geom.Rect) ([]byte, []byte, []byte) {
 	return row, before, after
 }
 
-func (v View) String() string {
+func (v View) Draw(w *world.World) string {
 	var buffer bytes.Buffer
-	w := *v.world
 
 	missing := v.size.Sub(w.Size)
-
 	row, before, after := paddingBytes(v, missing)
 	for y := 0; y < missing.H/2; y++ {
 		buffer.Write(row)
