@@ -2,6 +2,7 @@ package client
 
 import (
 	"encoding/json"
+	"os"
 	"testing"
 	"time"
 
@@ -19,7 +20,7 @@ func Test_move(t *testing.T) {
 	go s.Start(quit)
 
 	// Wait for server to start up
-	c := NewClient()
+	c := New(os.Stdout)
 
 	retries := 3
 	err := retryFunction(retries, 10*time.Millisecond, c.Connect)

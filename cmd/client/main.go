@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/client"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 
-	c := client.NewClient()
+	c := client.New(os.Stdout)
 
 	inputCh := make(chan input.Command)
 

@@ -2,7 +2,7 @@ package client
 
 import (
 	"encoding/json"
-	"fmt"
+	"io"
 	"time"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/input"
@@ -30,7 +30,7 @@ type Client struct {
 
 const connectionTimeout = 10 * time.Millisecond
 
-func NewClient() Client {
+func New(w io.Writer) Client {
 	conn, encConn, err := transport.ServerConnections()
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +39,7 @@ func NewClient() Client {
 	return Client{
 		conn:    conn,
 		encConn: encConn,
-		view:    views.NewView(),
+		view:    views.New(w),
 	}
 }
 
@@ -79,21 +79,30 @@ func (c *Client) Run(inputCh <-chan input.Command) error {
 		return errors.Wrap(err, "client")
 	}
 
+	var i int
 	for {
+		i++
+		log.Debugf("X:%d", i)
 		select {
 		case cmd := <-inputCh:
-			log.Infof("%s", input.Command(cmd))
+			log.Debugf("Y:%d", i)
 			c.handleInput(cmd)
 		case msg := <-stateChan:
+			log.Debugf("z:%d", i)
 			var wrld world.World
 			err := json.Unmarshal(msg.Data, &wrld)
 			if err != nil {
 				return err
 			}
 			c.world = &wrld
-			// Todo: fix for multiplayer :-)
-			c.Player.Coord = c.world.Players[0].Coord
-			fmt.Println(c.view.Draw(&wrld))
+
+			p, err := c.getPlayer(c.ID)
+			if err != nil {
+				return err
+			}
+			c.Player.Coord = p.Coord
+
+			c.view.Draw(&wrld)
 
 			// case <-cancel:
 			// 	break
@@ -106,6 +115,7 @@ func (c *Client) Run(inputCh <-chan input.Command) error {
 }
 
 func (c *Client) handleInput(cmd input.Command) {
+	log.Debugf("client: handleInput: %s", cmd)
 	switch cmd {
 	case input.MoveUp:
 		c.Move(0, -1)
@@ -118,4 +128,20 @@ func (c *Client) handleInput(cmd input.Command) {
 	default:
 		log.Errorf("unknown input %s. ignorning.", cmd)
 	}
+}
+
+func (c *Client) getPlayer(ID string) (*player.Player, error) {
+	for _, p := range c.world.Players {
+		return p, nil
+	}
+
+	return nil, errors.New("invalid ID")
+}
+
+func (c *Client) SetOutput(w io.Writer) {
+	log.SetOutput(w)
+}
+
+func (c *Client) SetLevel(level log.Level) {
+	log.SetLevel(level)
 }

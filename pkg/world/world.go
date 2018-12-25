@@ -25,7 +25,7 @@ const size = 5
 func NewDefaultWorld() World {
 	m := make([][]byte, size)
 	for y := 0; y < size; y++ {
-		m[y] = bytes.Repeat([]byte("-"), size)
+		m[y] = bytes.Repeat([]byte(" "), size)
 	}
 
 	return World{

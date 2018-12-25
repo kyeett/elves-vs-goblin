@@ -1,12 +1,14 @@
 package input
 
+import "fmt"
+
 type Command int
 
 const (
-	MoveUp    Command = 1
-	MoveDown  Command = 2
-	MoveLeft  Command = 3
-	MoveRight Command = 4
+	MoveUp    Command = 0
+	MoveDown  Command = 1
+	MoveLeft  Command = 2
+	MoveRight Command = 3
 )
 
 func (c Command) String() string {
@@ -20,5 +22,5 @@ func (c Command) String() string {
 	case MoveRight:
 		return "MoveRight"
 	}
-	return "Unknown"
+	return fmt.Sprintf("Unknown %d", c)
 }

@@ -2,6 +2,7 @@ package views
 
 import (
 	"bytes"
+	"io"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/world"
 
@@ -9,16 +10,17 @@ import (
 )
 
 type View struct {
+	w       io.Writer
 	padding []byte
-	center  geom.Coord
 	size    geom.Rect
 }
 
 const size = 9
 
-func NewView() View {
+func New(w io.Writer) View {
 	return View{
-		padding: []byte("."),
+		w:       w,
+		padding: []byte("~"),
 		size: geom.Rect{
 			W: size,
 			H: size,
@@ -34,7 +36,7 @@ func paddingBytes(v View, missing geom.Rect) ([]byte, []byte, []byte) {
 	return row, before, after
 }
 
-func (v View) Draw(w *world.World) string {
+func (v View) Draw(w *world.World) {
 	var buffer bytes.Buffer
 
 	missing := v.size.Sub(w.Size)
@@ -46,6 +48,8 @@ func (v View) Draw(w *world.World) string {
 	for _, r := range w.Rows() {
 		buffer.Write(before)
 		buffer.Write(r)
+		// v.w.Write(r)
+
 		buffer.Write(after)
 		buffer.WriteString("\n")
 	}
@@ -54,5 +58,10 @@ func (v View) Draw(w *world.World) string {
 		buffer.Write(row)
 	}
 
-	return buffer.String()
+	// v.w.Write([]byte("OK"))
+	// v.w.Write(buffer.Bytes())
+	buffer.WriteTo(v.w)
+	v.w.Write([]byte(""))
+
+	// Todo why is this needed?
 }

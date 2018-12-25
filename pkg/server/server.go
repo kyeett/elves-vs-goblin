@@ -92,8 +92,8 @@ func (s Server) Start(cancel <-chan bool) {
 }
 
 func (s *Server) StartSendingState() {
-
-	ticker := time.NewTicker(20 * time.Millisecond)
+	log.Info("Start ending state")
+	ticker := time.NewTicker(30 * time.Millisecond)
 	for {
 		<-ticker.C
 		mutex.RLock()
@@ -143,7 +143,9 @@ func (s *Server) handleAction(msg *nats.Msg) {
 		if err != nil {
 			log.Error(errors.Wrap(err, "server: ignoring action"))
 		}
+
 		if sig.Coord.X >= 0 && sig.Coord.X < s.world.Size.W && sig.Coord.Y >= 0 && sig.Coord.Y < s.world.Size.H {
+			log.Infof("Moving player %s to %s", sig.ID, sig.Coord)
 			p.Goto(sig.Coord.X, sig.Coord.Y)
 		}
 

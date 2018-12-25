@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"testing"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/client"
@@ -19,7 +20,7 @@ func Test_connect(t *testing.T) {
 	// Wait for server to start up
 	<-started
 
-	c := client.NewClient()
+	c := client.New(os.Stdout)
 	err := c.Connect()
 	if err != nil {
 		t.Fatal(err)
