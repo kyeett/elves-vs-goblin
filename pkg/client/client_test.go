@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"testing"
@@ -15,13 +16,14 @@ import (
 )
 
 func Test_move(t *testing.T) {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	s := server.NewDefault()
-	quit := make(chan bool)
-	go s.Start(quit)
+	go s.Start(ctx)
 
-	// Wait for server to start up
 	c := New(os.Stdout)
-
 	retries := 3
 	err := retryFunction(retries, 10*time.Millisecond, c.Connect)
 	if err != nil {
@@ -55,15 +57,7 @@ func Test_move(t *testing.T) {
 	if c.Coord != expected {
 		t.Fatalf("Expected %s, got %s", expected, c.Coord)
 	}
-
-	quit <- true
 }
-
-// func getClientPlayer(ID string, []player.Player) player.Player {
-// 	for _, p := range players {
-
-// 	}
-// }
 
 func retryFunction(retries int, delay time.Duration, f func() error) error {
 	var err error

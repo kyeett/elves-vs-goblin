@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"time"
@@ -71,24 +72,20 @@ func (c *Client) Move(x, y int) error {
 	return nil
 }
 
-func (c *Client) Run(inputCh <-chan input.Command) error {
-
+func (c *Client) Run(inputCh <-chan input.Command, ctx context.Context) error {
 	stateChan := make(chan *nats.Msg, 64)
 	sub, err := c.conn.ChanSubscribe("state", stateChan)
 	if err != nil {
 		return errors.Wrap(err, "client")
 	}
+	defer sub.Unsubscribe()
+	defer sub.Drain()
 
-	var i int
 	for {
-		i++
-		log.Debugf("X:%d", i)
 		select {
 		case cmd := <-inputCh:
-			log.Debugf("Y:%d", i)
 			c.handleInput(cmd)
 		case msg := <-stateChan:
-			log.Debugf("z:%d", i)
 			var wrld world.World
 			err := json.Unmarshal(msg.Data, &wrld)
 			if err != nil {
@@ -104,14 +101,10 @@ func (c *Client) Run(inputCh <-chan input.Command) error {
 
 			c.view.Draw(&wrld)
 
-			// case <-cancel:
-			// 	break
+		case <-ctx.Done():
+			return nil
 		}
 	}
-
-	sub.Unsubscribe()
-	sub.Drain()
-	return nil
 }
 
 func (c *Client) handleInput(cmd input.Command) {

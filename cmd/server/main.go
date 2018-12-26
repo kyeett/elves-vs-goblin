@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 
@@ -9,18 +10,19 @@ import (
 )
 
 func main() {
-	// world := world.NewWorld()
-	quit := make(chan bool)
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt)
 
 	go func() {
 		<-signalChan
 		logrus.Info("Received ctrl+C, shut down server")
-		quit <- true
+		cancel()
 	}()
 
 	s := server.NewDefault()
-	s.Start(quit)
+	s.Start(ctx)
 
 }

@@ -1,8 +1,8 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -82,31 +82,35 @@ func NewDefault() Server {
 	}
 }
 
-func (s Server) Start(cancel <-chan bool) {
+func (s Server) Start(ctx context.Context) {
 	log.Info("Starting server...")
 	connectChan, actionChan, closer := serverChannels(s.conn)
 
-	s.gameLoop(connectChan, actionChan, cancel)
+	s.gameLoop(connectChan, actionChan, ctx)
 	closer.Close()
 	s.Shutdown()
 }
 
-func (s *Server) StartSendingState() {
+func (s *Server) StartSendingState(ctx context.Context) {
 	log.Info("Start ending state")
 	ticker := time.NewTicker(30 * time.Millisecond)
 	for {
-		<-ticker.C
-		mutex.RLock()
-		s.encConn.Publish("state", s.world)
-		mutex.RUnlock()
+		select {
+		case <-ticker.C:
+			mutex.RLock()
+			s.encConn.Publish("state", s.world)
+			mutex.RUnlock()
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
-func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, cancel <-chan bool) {
+func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, ctx context.Context) {
 	// Used in tests to wait for startup
 	serverStartedTestHook()
 
-	go s.StartSendingState()
+	go s.StartSendingState(ctx)
 	for {
 		select {
 		case msg := <-connectChan:
@@ -115,8 +119,7 @@ func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, cancel <-chan 
 		case msg := <-actionChan:
 			s.handleAction(msg)
 			postActionTestHook()
-		case <-cancel:
-			fmt.Println("Received an interrupt, cleanning up ...")
+		case <-ctx.Done():
 			return
 		}
 	}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -8,14 +9,17 @@ import (
 )
 
 func Test_connect(t *testing.T) {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	s := NewDefault()
-	quit := make(chan bool)
 
 	started := make(chan bool)
 	serverStartedTestHook = func() {
 		started <- true
 	}
-	go s.Start(quit)
+	go s.Start(ctx)
 
 	// Wait for server to start up
 	<-started
@@ -25,25 +29,6 @@ func Test_connect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// c.Move(1, 0)
-	// c.Move(0, 1)
+	c.Run()
 
-	// stateChan := c.StateChan()
-	// go s.StartSendingState()
-
-	// timeout := 100 * time.Millisecond
-	// select {
-	// case msg := <-stateChan:
-	// 	var wrld world.World
-	// 	err := json.Unmarshal(msg.Data, &wrld)
-	// 	if err != nil {
-	// 		t.Fatal(err)
-	// 	}
-	// 	log.Info("State updated", wrld)
-
-	// case <-time.After(timeout):
-	// 	t.Fatalf("Did not expected response within %s: %s", timeout, err)
-	// }
-
-	quit <- true
 }

@@ -1,25 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gdamore/tcell"
 	"github.com/kyeett/elves-vs-goblin/pkg/client"
 	"github.com/kyeett/elves-vs-goblin/pkg/input"
+	"github.com/sirupsen/logrus"
 
 	"github.com/rivo/tview"
 )
 
-// Writer ...
-type Writer struct {
-}
-
-// Writer ...
-func (w *Writer) Write(b []byte) (int, error) {
-	return len(b), nil
-}
-
 func main() {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	app := tview.NewApplication()
 	textView := tview.NewTextView().
@@ -55,6 +50,10 @@ func main() {
 			inputCh <- input.MoveLeft
 		case tcell.KeyRight:
 			inputCh <- input.MoveRight
+		case tcell.KeyCtrlC:
+			logrus.Info("Received ctrl+C, shutting down client")
+			cancel()
+			app.Stop()
 		}
 		return event
 	})
@@ -65,7 +64,7 @@ func main() {
 	c.Connect()
 	// c.SetOutput(debugView)
 	// c.SetLevel(logrus.DebugLevel)
-	go c.Run(inputCh)
+	go c.Run(inputCh, ctx)
 
 	// go func() {
 
