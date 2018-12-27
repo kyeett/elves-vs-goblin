@@ -23,6 +23,5 @@ func main() {
 	}()
 
 	s := server.NewDefault()
-	s.Start(ctx)
-
+	s.Run(ctx)
 }

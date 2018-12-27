@@ -20,6 +20,7 @@ import (
 	"github.com/nats-io/nats"
 )
 
+// Server is responsible for connection to the Nats server and holding the World state
 type Server struct {
 	world   *world.World
 	conn    *nats.Conn
@@ -68,6 +69,7 @@ func serverChannels(nc *nats.Conn) (chan *nats.Msg, chan *nats.Msg, io.Closer) {
 	return connectChan, actionChan, closer
 }
 
+// NewDefault returns a Server with a default World and connections to a Nats server at local host
 func NewDefault() Server {
 	nc, c, err := transport.ServerConnections()
 	if err != nil {
@@ -82,16 +84,17 @@ func NewDefault() Server {
 	}
 }
 
-func (s Server) Start(ctx context.Context) {
+// Run starts the send state loop, and the listen loops
+func (s Server) Run(ctx context.Context) {
 	log.Info("Starting server...")
 	connectChan, actionChan, closer := serverChannels(s.conn)
 
-	s.gameLoop(connectChan, actionChan, ctx)
+	s.gameLoop(ctx, connectChan, actionChan)
 	closer.Close()
-	s.Shutdown()
+	s.close()
 }
 
-func (s *Server) StartSendingState(ctx context.Context) {
+func (s *Server) startSendState(ctx context.Context) {
 	log.Info("Start ending state")
 	ticker := time.NewTicker(30 * time.Millisecond)
 	for {
@@ -106,11 +109,11 @@ func (s *Server) StartSendingState(ctx context.Context) {
 	}
 }
 
-func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, ctx context.Context) {
+func (s *Server) gameLoop(ctx context.Context, connectChan, actionChan chan *nats.Msg) {
 	// Used in tests to wait for startup
 	serverStartedTestHook()
 
-	go s.StartSendingState(ctx)
+	go s.startSendState(ctx)
 	for {
 		select {
 		case msg := <-connectChan:
@@ -125,7 +128,7 @@ func (s *Server) gameLoop(connectChan, actionChan chan *nats.Msg, ctx context.Co
 	}
 }
 
-func (s *Server) Shutdown() {
+func (s *Server) close() {
 	s.conn.Close()
 	s.encConn.Close()
 }

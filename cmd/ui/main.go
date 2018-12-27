@@ -7,7 +7,7 @@ import (
 	"github.com/gdamore/tcell"
 	"github.com/kyeett/elves-vs-goblin/pkg/client"
 	"github.com/kyeett/elves-vs-goblin/pkg/input"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/rivo/tview"
 )
@@ -51,7 +51,7 @@ func main() {
 		case tcell.KeyRight:
 			inputCh <- input.MoveRight
 		case tcell.KeyCtrlC:
-			logrus.Info("Received ctrl+C, shutting down client")
+			log.Info("Received ctrl+C, shutting down client")
 			cancel()
 			app.Stop()
 		}
@@ -61,10 +61,15 @@ func main() {
 	// w := Writer{}
 	// c := client.New(&w)
 	c := client.New(textView)
-	c.Connect()
+	err := c.Connect()
+	if err != nil {
+		log.Fatal("client failed to connect", err)
+	}
+	defer c.Close()
+
 	// c.SetOutput(debugView)
 	// c.SetLevel(logrus.DebugLevel)
-	go c.Run(inputCh, ctx)
+	go c.Run(ctx, inputCh)
 
 	// go func() {
 

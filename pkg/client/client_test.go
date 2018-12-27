@@ -2,16 +2,16 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
+	"testing/iotest"
 	"time"
+
+	"github.com/kyeett/elves-vs-goblin/pkg/input"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/geom"
 
 	"github.com/kyeett/elves-vs-goblin/pkg/server"
-	"github.com/kyeett/elves-vs-goblin/pkg/world"
-	"github.com/nats-io/nats"
 	"github.com/pkg/errors"
 )
 
@@ -21,35 +21,40 @@ func Test_move(t *testing.T) {
 	defer cancel()
 
 	s := server.NewDefault()
-	go s.Start(ctx)
+	go s.Run(ctx)
 
-	c := New(os.Stdout)
+	c := New(iotest.TruncateWriter(os.Stdout, 0))
 	retries := 3
 	err := retryFunction(retries, 10*time.Millisecond, c.Connect)
 	if err != nil {
 		t.Fatal(errors.Wrapf(err, "client failed to connect with %d attempts", retries))
 	}
 
-	// Receive updates
-	stateChan := make(chan *nats.Msg, 64)
-	_, _ = c.conn.ChanSubscribe("state", stateChan)
+	updated := make(chan bool)
+	postStateChangedHook = func() {
+		updated <- true
+	}
+
+	inputCh := make(chan input.Command)
+	go c.Run(ctx, inputCh)
+
+	moves := []input.Command{
+		input.MoveDown,
+		input.MoveDown,
+		input.MoveDown,
+		input.MoveDown,
+		input.MoveRight,
+		input.MoveRight,
+	}
 
 	timeout := 50 * time.Millisecond
-	for i := 0; i < 2; i++ {
-		c.Move(1, 2)
+	for _, move := range moves {
+		inputCh <- move
 		select {
-		case msg := <-stateChan:
-			var wrld world.World
-			err := json.Unmarshal(msg.Data, &wrld)
-			if err != nil {
-				t.Fatal(err)
-			}
-			c.world = &wrld
-			// Todo: fix for multiplayer :-)
-			c.Player.Coord = c.world.Players[0].Coord
-
+		case <-updated:
+			// Do nothing
 		case <-time.After(timeout):
-			t.Fatalf("\nDid not expected response within %s", timeout)
+			t.Fatalf("Sending inputs timed out after %s", timeout)
 		}
 	}
 

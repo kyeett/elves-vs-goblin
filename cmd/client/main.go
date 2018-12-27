@@ -37,7 +37,9 @@ func main() {
 	}()
 
 	c.Connect()
-	if err := c.Run(inputCh, ctx); err != nil {
+	defer c.Close()
+
+	if err := c.Run(ctx, inputCh); err != nil {
 		log.Fatal(err)
 	}
 }

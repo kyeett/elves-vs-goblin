@@ -29,33 +29,48 @@ type Client struct {
 	view    views.View
 }
 
+var postStateChangedHook = func() {}
+
 const connectionTimeout = 10 * time.Millisecond
 
 func New(w io.Writer) Client {
-	conn, encConn, err := transport.ServerConnections()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	return Client{
-		conn:    conn,
-		encConn: encConn,
-		view:    views.New(w),
+		view: views.New(w),
 	}
 }
 
 func (c *Client) Connect() error {
+	if c.conn != nil || c.encConn != nil {
+		return errors.New("client already connected")
+	}
+
+	conn, encConn, err := transport.ServerConnections()
+	if err != nil {
+		return errors.Wrap(err, "client")
+	}
+	c.conn, c.encConn = conn, encConn
+
 	var p player.Player
-	err := c.encConn.Request("connect", "I want to connect to the server", &c.Player, connectionTimeout)
+	err = c.encConn.Request("connect", "I want to connect to the server", &c.Player, connectionTimeout)
 	if err != nil {
 		return errors.Wrap(err, "client failed to connect")
 	}
 
-	if p.ID == "" {
-		return errors.Wrap(err, "client received unexpected response. No ID")
-	}
+	// if p.ID == "" {
+	// 	return errors.Wrap(err, "client received unexpected response. No ID")
+	// }
 	c.Player = &p
 	return nil
+}
+
+func (c *Client) Close() {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+
+	if c.encConn != nil {
+		c.encConn.Close()
+	}
 }
 
 func (c *Client) Move(x, y int) error {
@@ -72,7 +87,8 @@ func (c *Client) Move(x, y int) error {
 	return nil
 }
 
-func (c *Client) Run(inputCh <-chan input.Command, ctx context.Context) error {
+func (c *Client) Run(ctx context.Context, inputCh <-chan input.Command) error {
+
 	stateChan := make(chan *nats.Msg, 64)
 	sub, err := c.conn.ChanSubscribe("state", stateChan)
 	if err != nil {
@@ -86,6 +102,15 @@ func (c *Client) Run(inputCh <-chan input.Command, ctx context.Context) error {
 		case cmd := <-inputCh:
 			c.handleInput(cmd)
 		case msg := <-stateChan:
+
+			// Emtpy queue
+			for len(stateChan) > 0 {
+				msg = <-stateChan
+			}
+
+			// TOdo: use function
+			// c.handleStateChange(msg.Data)
+
 			var wrld world.World
 			err := json.Unmarshal(msg.Data, &wrld)
 			if err != nil {
@@ -101,10 +126,27 @@ func (c *Client) Run(inputCh <-chan input.Command, ctx context.Context) error {
 
 			c.view.Draw(&wrld)
 
+			postStateChangedHook()
 		case <-ctx.Done():
 			return nil
 		}
 	}
+}
+
+func (c *Client) handleStateChange(msg *nats.Msg) error {
+	var wrld world.World
+	err := json.Unmarshal(msg.Data, &wrld)
+	if err != nil {
+		return err
+	}
+	c.world = &wrld
+
+	p, err := c.getPlayer(c.ID)
+	if err != nil {
+		return err
+	}
+	c.Player.Coord = p.Coord
+	return nil
 }
 
 func (c *Client) handleInput(cmd input.Command) {
